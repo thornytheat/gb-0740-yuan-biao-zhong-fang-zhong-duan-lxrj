@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% from 'lines.jinja' import panel %}
+{% block section %}
+<section class="panel output"><h2>$ replay notify <small>{{ notice['批次'] }}</small></h2>
+  <div class="scroll" tabindex="0" aria-label="通知批次凭据"><table>
+    <tbody>
+      <tr><th scope="row">计划批次</th><td><code>{{ notice['计划'] }}</code></td></tr>
+      <tr><th scope="row">处置次序</th><td>{{ notice['处置次序']|join(' → ') }}</td></tr>
+      <tr><th scope="row">责任依据摘要</th><td><code>{{ notice['责任依据摘要'] }}</code></td></tr>
+      <tr><th scope="row">生成时间</th><td>{{ notice['生成时间'] }}</td></tr>
+      <tr><th scope="row">覆盖</th><td>受影响 {{ notice['覆盖']['受影响'] }} · 已归属 {{ notice['覆盖']['已归属'] }} · 待归属 {{ notice['覆盖']['待归属'] }}</td></tr>
+      <tr><th scope="row">通知完成</th><td>{{ '是' if notice['覆盖']['通知完成'] else '否（仍有待归属分区）' }}</td></tr>
+    </tbody>
+  </table></div>
+  <form class="retry" id="retry" action="{{ url_for('notify.delivery', plan=meta['编号']) }}" method="post">
+    <button type="submit">重试通知</button>
+    <output id="retry-result" role="status"></output>
+  </form>
+</section>
+{% for group in notice['组通知'] %}
+<section class="panel stream"><h2>{{ group['责任组'] }} <small>停批 {{ group['停批'] }} · 重做 {{ group['重做'] }} · 审计 {{ group['审计'] }}</small></h2>
+  <div class="scroll" tabindex="0" aria-label="{{ group['责任组'] }}"><table>
+    <thead><tr><th scope="col">分区</th><th scope="col">处置</th><th scope="col">原因码</th><th scope="col">影响来源</th></tr></thead>
+    <tbody>{% for entry in group['分区'] %}<tr>
+      <td>{{ entry['分区'] }}</td>
+      <td><span class="state" data-state="{{ {'停批':'blocked','重做':'write','审计':'reuse'}[entry['处置']] }}">{{ entry['处置'] }}</span></td>
+      <td>{{ entry['原因码']|default('—') }}</td>
+      <td>{{ entry['来源']|join('、') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endfor %}
+<section class="panel stream"><h2>待归属分区 <small>{{ notice['待归属']|length }} 个分区 · 责任缺失不计通知完成</small></h2>
+  {% if notice['待归属'] %}<div class="scroll" tabindex="0" aria-label="待归属分区"><table>
+    <thead><tr><th scope="col">分区</th><th scope="col">数据集</th><th scope="col">处置</th><th scope="col">原因码</th><th scope="col">影响来源</th><th scope="col">归属</th></tr></thead>
+    <tbody>{% for entry in notice['待归属'] %}<tr>
+      <td>{{ entry['分区'] }}</td>
+      <td>{{ entry['数据集'] }}</td>
+      <td><span class="state" data-state="{{ {'停批':'blocked','重做':'write','审计':'reuse'}[entry['处置']] }}">{{ entry['处置'] }}</span></td>
+      <td>{{ entry['原因码']|default('—') }}</td>
+      <td>{{ entry['来源']|join('、') }}</td>
+      <td>{{ entry['归属'] }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="empty">全部受影响分区均已归属责任组。</p>{% endif %}
+</section>
+{{ panel('影响来源', notice['影响来源']) }}
+{{ panel('责任依据快照', notice['责任依据']) }}
+<script type="module">
+  const form = document.getElementById('retry');
+  const feedback = document.getElementById('retry-result');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    button.disabled = true;
+    delete feedback.dataset.error;
+    try {
+      const response = await fetch(form.action, {method: 'POST'});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      feedback.value = data.reused ? '已复用通知批次，未新增' : '通知批次已生成';
+    } catch (error) {
+      feedback.dataset.error = '';
+      feedback.value = error.message || '通知失败，请重试。';
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

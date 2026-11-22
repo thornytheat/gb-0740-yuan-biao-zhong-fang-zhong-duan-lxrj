@@ -37,9 +37,10 @@ kbd { font: inherit; color: var(--ink); border: 1px solid var(--rule-bright); pa
 details { border-bottom: 1px solid var(--rule); }
 summary { padding: 7px 13px; cursor: pointer; overflow-wrap: anywhere; }
 summary:hover { background: var(--panel-light); }
-summary .state { display: inline-block; color: var(--success); min-width: 82px; }
-summary .state[data-state=blocked] { color: var(--error); }
-summary .state[data-state=reuse] { color: var(--warn); }
+summary .state, td .state { display: inline-block; color: var(--success); min-width: 82px; }
+summary .state[data-state=blocked], td .state[data-state=blocked] { color: var(--error); }
+summary .state[data-state=reuse], td .state[data-state=reuse] { color: var(--warn); }
+.retry { display: flex; align-items: center; gap: 9px; padding: 10px 13px; }
 .count { float: right; color: var(--dim); font-variant-numeric: tabular-nums; }
 .diff { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); background: var(--bg); margin: 0 13px 7px; border-left: 1px solid var(--rule-bright); }
 .diff div { display: grid; gap: 3px; padding: 5px 10px; }

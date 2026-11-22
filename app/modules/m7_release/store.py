@@ -10,6 +10,9 @@ class Catalog:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self.connection()) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY, document TEXT NOT NULL)")
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS notices (plan TEXT PRIMARY KEY, document TEXT NOT NULL)"
+            )
 
     def connection(self):
         return sqlite3.connect(self.path, timeout=10)
@@ -33,3 +36,17 @@ class Catalog:
                 json.loads(row[0])["批次"]
                 for row in db.execute("SELECT document FROM plans ORDER BY rowid DESC LIMIT 30")
             ]
+
+    def notice(self, plan_id):
+        with closing(self.connection()) as db:
+            row = db.execute("SELECT document FROM notices WHERE plan=?", (plan_id,)).fetchone()
+            return json.loads(row[0]) if row else None
+
+    def save_notice(self, plan_id, document):
+        with closing(self.connection()) as db, db:
+            op = db.execute(
+                "INSERT OR IGNORE INTO notices VALUES (?,?)",
+                (plan_id, json.dumps(document, ensure_ascii=False)),
+            )
+            row = db.execute("SELECT document FROM notices WHERE plan=?", (plan_id,)).fetchone()[0]
+            return json.loads(row), not op.rowcount

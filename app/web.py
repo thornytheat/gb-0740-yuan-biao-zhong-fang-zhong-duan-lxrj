@@ -1,5 +1,7 @@
 from app.config import SAMPLES
 from app.keys import ReplayError
+from app.modules.m8_notify.registry import load_registry
+from app.modules.m8_notify.service import deliver
 from flask import abort, current_app
 
 
@@ -18,3 +20,9 @@ def fixture(slug):
     if not isinstance(slug, str) or slug not in SAMPLES:
         raise ReplayError("SAMPLE", "请选择已登记的清单")
     return (current_app.config["INPUTS"] / f"{slug}.json").read_bytes()
+
+
+def notice_for(document):
+    return deliver(
+        repository(), document, lambda: load_registry(current_app.config["OWNERS"])
+    )

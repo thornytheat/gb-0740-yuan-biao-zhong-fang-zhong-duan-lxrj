@@ -5,7 +5,7 @@ from app.keys import ReplayError
 from app.modules import VIEWS, register
 from app.modules.m7_release.service import execute
 from app.modules.m7_release.store import Catalog
-from app.web import fixture, record, repository
+from app.web import fixture, notice_for, record, repository
 from flask import Flask, abort, jsonify, render_template, request, url_for
 
 
@@ -14,6 +14,7 @@ def create_app(options=None):
     app.config.update(
         DB=os.environ.get("REPLAY_DB", ROOT / "instance" / "replay.sqlite3"),
         INPUTS=ROOT / "sample_data",
+        OWNERS=ROOT / "sample_data" / "owners.json",
         MAX_CONTENT_LENGTH=MAX_BYTES + 32000,
     )
     if options:
@@ -58,6 +59,7 @@ def create_app(options=None):
             tasks=rows,
             filter_state=state,
             latest=repository().latest() if section == "release" else [],
+            notice=notice_for(result)[0] if section == "notify" else None,
         )
 
     @app.get("/api/plans")
@@ -89,7 +91,9 @@ def create_app(options=None):
 
     @app.get("/api/export/<key>")
     def export(key):
-        response = jsonify(record(key))
+        document = record(key)
+        batch, _ = notice_for(document)
+        response = jsonify({**document, "通知": batch})
         response.headers.set("Content-Disposition", "attachment", filename=f"replay-{key}.json")
         return response
 

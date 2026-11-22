@@ -10,7 +10,8 @@
 2. 切换「两分区演练」，点击「生成重放计划」。`orders` 与 `facts` 各增加 2 行，总行数 20 → 24。
 3. 转到「回滚校验」。写入两项后，回滚摘要应与演练前摘要一致。相同清单再运行会复用批次。
 4. 下载一份重放清单，包括上游版本、目标版本和前后校验摘要。
+5. 打开「下游通知」。按责任组查看停批、重做、审计分区与待归属分区；重试通知复用同一批次，下载的清单附带同一通知批次。
 
-`POST /api/plans` 接收 `{"sample":"clean"}` 或表单的 `bundle` JSON 文件。模块及字段说明见 [深度登记](docs/DEPTH.md) 和 [数据字典](docs/DATA-DICTIONARY.md)。
+`POST /api/plans` 接收 `{"sample":"clean"}` 或表单的 `bundle` JSON 文件。责任组登记在 `sample_data/owners.json`，未登记数据集的受影响分区列入待归属。模块及字段说明见 [深度登记](docs/DEPTH.md) 和 [数据字典](docs/DATA-DICTIONARY.md)。
 
 运行 `docker compose exec -T app pytest -q` 复核。`docker compose down` 停止应用并保留批次历史。
